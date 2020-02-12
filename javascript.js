@@ -1,14 +1,4 @@
-// Steps to complete:
 
-// 1. Initialize Firebase
-// 2. Create button for adding new employees - then update the html + update the database
-// 3. Create a way to retrieve employees from the employee database.
-// 4. Create a way to calculate the months worked. Using difference between start and current time.
-//    Then use moment.js formatting to set difference in months.
-// 5. Calculate Total billed
-
-// 1. Initialize Firebase
-<script>
 var firebaseConfig = {
     apiKey: "AIzaSyBgifRoH8DL7YdB6wr_w7b2OhHUABJavr8",
     authDomain: "train-scheduler-36350.firebaseapp.com",
@@ -19,49 +9,28 @@ var firebaseConfig = {
     appId: "1:153686637797:web:91390757fb9b0728b8680c"
   };
   firebase.initializeApp(firebaseConfig);
-  </script>
+  
   var database = firebase.database();
   
-  // 2. Button for adding Employees
   $("#add-train-btn").on("click", function(event) {
     event.preventDefault();
   
-    // Grabs user input
-    // was empName
     var trainName = $("#train-name-input").val().trim();
-    // was empRole
     var trainDestination = $("#destination-input").val().trim();
-    //was empRate
     var trainFrequency = $("#frequency-input").val().trim();
-    //was empStart
-    var nextArrival = moment($("#next-arrival-input").val().trim(), "MM/DD/YYYY").format("X");
-    //was empStart, THIS MUST BE CALCULATED SOME HOW
-    var minutesAway = moment($("#start-input").val().trim(), "MM/DD/YYYY").format("X");
-
-    
+    var firstTrain= $("#first-train-input").val().trim();
   
-    // Creates local "temporary" object for holding employee data
-    //was newEmp
     var newTrain = {
-    //was empName, empRole, empStart, empRate
+    
       name: trainName,
       destination: trainDestination,
-      frequency: trainFrequency
-      arrival: nextArrival
-      calculation: minutesAway ,
+      frequency: trainFrequency,
+      firstTrain: firstTrain
       
     };
   
     // Uploads employee data to the database
     database.ref().push(newTrain);
-  
-    // Logs everything to console
-    console.log(newTrain.trainName);
-    console.log(newTrain.trainDestination);
-    console.log(newTrain.trainFrequency);
-    console.log(newTrain.nextArrival);
-    console.log(newTrain.minutesAway);
-    
   
     alert("New train successfully added");
   
@@ -69,67 +38,103 @@ var firebaseConfig = {
     $("#train-name-input").val("");
     $("#destination-input").val("");
     $("#frequency-input").val("");
-    //ALSO KNOWN AS FIRST TRAIN TIME IN THE FORM
-    $("#next-arrival-input").val("");
-    //I DON'T THINK YOU NEED ONE FOR MINUTES-AWAY-INPUT BECAUSE IT DOESN'T REQUIRE A USER INPUT
 
   });
   
-  // 3. Create Firebase event for adding trains to the database and a row in the html when the user makes an entry
+//this displays all the children from firebase (retrieval)
   database.ref().on("child_added", function(childSnapshot) {
     console.log(childSnapshot.val());
   
-    // Store everything into a variable.
-    //WHAT ARE THESE . AT THE END? ARE THOSE METHODS?
     //was empName
     var trainName = childSnapshot.val().name;
     //was empRole
-    var trainDestination = childSnapshot.val().role;
+    var trainDestination = childSnapshot.val().destination;
     //was empRate
-    var trainFrequency = childSnapshot.val().rate;
+    var trainFrequency = childSnapshot.val().frequency;
     //was empStart
-    var nextArrival = childSnapshot.val().start;
-    //created this one
-    var minutesAway = childSnapshot.val()
- 
-  
-    // Employee Info
+    var firstTrain = childSnapshot.val().firstTrain;
+
     console.log(trainName);
     console.log(trainDestination);
-    console.log(nextArrival);
+    console.log(firstTrain);
     console.log(trainFrequency);
-    //DON't NEED ONE FOR MINUTES AWAY BC IT IS CALCULATED
-  
-    // CALCULATE THE MINUTES AWAY USING NEXT ARRIVAL AND FREQUENCY SOMEHOW
-    //was empStartPretty
-    var nextArrival = moment.unix(trainTime).format("HH/mm a");
-  
+
+    // (TEST 1)
+    // First Train of the Day is 3:00 AM
+    // Assume Train comes every 3 minutes.
+    // Assume the current time is 3:16 AM....
+    // What time would the next train be...? (Use your brain first)
+    // It would be 3:18 -- 2 minutes away
+
+    // (TEST 2)
+    // First Train of the Day is 3:00 AM
+    // Assume Train comes every 7 minutes.
+    // Assume the current time is 3:16 AM....
+    // What time would the next train be...? (Use your brain first)
+    // It would be 3:21 -- 5 minutes away
+
+
+    // ==========================================================
+
+    // Solved Mathematically
+    // Test case 1:
+    // 16 - 00 = 16
+    // 16 % 3 = 1 (Modulus is the remainder)
+    // 3 - 1 = 2 minutes away
+    // 2 + 3:16 = 3:18
+
+    // Solved Mathematically
+    // Test case 2:
+    // 16 - 00 = 16
+    // 16 % 7 = 2 (Modulus is the remainder)
+    // 7 - 2 = 5 minutes away
+    // 5 + 3:16 = 3:21
+
+    // Assumptions
+    var tFrequency = trainFrequency;
+
+    var firstTime = firstTrain;
+
+    // First Time (pushed back 1 year to make sure it comes before current time)
+    var firstTimeConverted = moment(firstTime, "HH:mm").subtract(1, "years");
+    console.log(firstTimeConverted);
+
+    // Current Time
+    var currentTime = moment();
+    console.log("CURRENT TIME: " + moment(currentTime).format("hh:mm"));
+
+    // Difference between the times
+    var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
+    console.log("DIFFERENCE IN TIME: " + diffTime);
+
+    // Time apart (remainder)
+    var tRemainder = diffTime % tFrequency;
+    console.log(tRemainder);
+
+    // Minute Until Train
+    var tMinutesTillTrain = tFrequency - tRemainder;
+    console.log("MINUTES TILL TRAIN: " + tMinutesTillTrain);
+
+    minutesAway = tMinutesTillTrain;
+
+    // Next Train
+    var nextTrain = moment().add(tMinutesTillTrain, "minutes");
+    console.log("ARRIVAL TIME: " + moment(nextTrain).format("hh:mm"));
+
+    nextArrival = moment(nextTrain).format("hh:mm a");
+
     // Create the new row
     var newRow = $("<tr>").append(
-    //was empName
+ 
     $("<td>").text(trainName),
-    //was empRole
     $("<td>").text(trainDestination),
-    //was empMonths
     $("<td>").text(trainFrequency),
-    //was empRate
     $("<td>").text(nextArrival),
-    //was empStartPretty
-    $("<td>").text(minutesAway),
-     
   
-      
+    $("<td>").text(minutesAway)
     );
   
     // Append the new row to the table
-    $("#train-table > tbody").append(newRow);
+    $("#table-row").append(newRow);
   });
-  
-  // Example Time Math
-  // -----------------------------------------------------------------------------
-  // Assume Employee start date of January 1, 2015
-  // Assume current date is March 1, 2016
-  
-  // We know that this is 15 months.
-  // Now we will create code in moment.js to confirm that any attempt we use meets this test case
   
